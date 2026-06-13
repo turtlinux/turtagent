@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package dev.ingstudios.turtlinux.turtagent;
+
+option go_package = "./protobuf";
+
+service TurtAgentStreamService {
+	rpc GenerateResponse (PromptRequest) returns (stream PromptResponse);
+}
+
+message PromptRequest {
+	string prompt = 1;
+}
+
+message PromptResponse {
+	string text_chunk = 1;
+	bool is_thinking = 2;
+	bool is_final = 3;
+}
