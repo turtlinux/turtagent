@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nitrite/nitrite.dart';
 import 'package:nitrite_hive_adapter/nitrite_hive_adapter.dart';
@@ -12,7 +13,7 @@ class _ConversationsNotifier extends AsyncNotifier<Conversations> {
   @override
   Future<Conversations> build() async {
     final String? home = Platform.environment['HOME'];
-    final String storageDir = '.local/share/turtagent_hub/';
+    final String storageDir = '.local/share/turtagent/';
     final String dbDir = 'database/';
     final String filename = 'main';
 
@@ -42,6 +43,7 @@ class _ConversationsNotifier extends AsyncNotifier<Conversations> {
     final repository = await _db.getRepository<ConversationItem>(
       key: 'history',
     );
+    debugPrint((await repository.find().toList()).toString());
     final history = await repository
         .find(findOptions: FindOptions(limit: amountToLoad))
         .toList();
@@ -56,6 +58,7 @@ class _ConversationsNotifier extends AsyncNotifier<Conversations> {
         key: 'history',
       );
       await repository.insert(item);
+      await _db.commit();
       return [item, ...currentHistory];
     });
   }
@@ -67,6 +70,7 @@ class _ConversationsNotifier extends AsyncNotifier<Conversations> {
         key: 'history',
       );
       await repository.update(where('id').eq(item.id), item);
+      await _db.commit();
 
       final updatedHistory = currentHistory.map((h) {
         if (h.id == item.id) {
@@ -85,9 +89,14 @@ class _ConversationsNotifier extends AsyncNotifier<Conversations> {
         key: 'history',
       );
       await repository.removeOne(item);
+      await _db.commit();
       currentHistory.remove(item);
       return currentHistory;
     });
+  }
+
+  Future<void> close() async {
+    await _db.close();
   }
 }
 
