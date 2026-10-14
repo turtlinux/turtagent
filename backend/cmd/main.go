@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"turtagent/backend/internal/mouse"
 	"turtagent/backend/internal/ollama"
+	"turtagent/backend/proto"
 	"turtagent/backend/server"
 
 	pb "turtagent/backend/protobuf"
@@ -24,9 +26,17 @@ func main() {
 
 	go mouse.DetectMouse()
 
+	mux := http.NewServeMux()
+
+	if conversationsHandler, err := server.InitConversationsHandler(); err != nil {
+		log.Fatalf("error while initiating conversations handler: %v\n", err)
+	} else {
+		mux.HandleFunc("/conversations/get", conversationsHandler.Get)
+	}
+
 	grpcServer := grpc.NewServer()
 
-	turtAgentServer := &server.Server{
+	turtAgentServer := &proto.Server{
 		Ollama: ollamaRegistry,
 	}
 

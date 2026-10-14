@@ -37,22 +37,42 @@ func (r *DatabaseReceiver) CloseDb() {
 	defer r.Db.Close()
 }
 
-// func (r *DatabaseReceiver) GetConversationItems() ([]models.ConversationItem, error) {
-// 		var item models.ConversationItem
-	
-// 		err := r.Db.View(func(txn *badger.Txn) error {
-// 			key := []byte("conversation:" + )
-			
-// 			badgerItem, err := txn.Get(key)
-// 			if err != nil {
-// 				return err
-// 			}
+func (r *DatabaseReceiver) GetConversationItems() ([]models.ConversationItem, error) {
+	var items []models.ConversationItem
 
-// 			return badgerItem.Value(func(val []byte) error {
-// 				return json.Unmarshal(val, &item)
-// 			})
-// 		})
-// }
+	err := r.Db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = true
+
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		prefix := []byte("conversations:")
+
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			item := it.Item()
+
+			err := item.Value(func(val []byte) error {
+				var convItem models.ConversationItem
+				if err := json.Unmarshal(val, &convItem); err != nil {
+					return err
+				}
+				items = append(items, convItem)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	
+	return items, nil
+}
 
 func (r *DatabaseReceiver) AddConversationItem(item models.ConversationItem) error {
 	err := r.Db.Update(func(txn *badger.Txn) error {
