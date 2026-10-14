@@ -32,7 +32,10 @@ func main() {
 		log.Fatalf("error while initiating conversations handler: %v\n", err)
 	} else {
 		mux.HandleFunc("/conversations/get", conversationsHandler.Get)
+		mux.HandleFunc("/conversations/add", conversationsHandler.Add)
 	}
+
+	go http.ListenAndServe("127.0.0.8080", mux)
 
 	grpcServer := grpc.NewServer()
 
